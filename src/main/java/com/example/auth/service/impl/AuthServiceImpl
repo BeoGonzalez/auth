@@ -1,0 +1,51 @@
+package com.example.auth.service.impl;
+
+import com.example.auth.dto.AuthRequest;
+import com.example.auth.dto.AuthResponse;
+import com.example.auth.entity.UserEntity;
+import com.example.auth.repository.UserRepository;
+import com.example.auth.security.JwtService;
+import com.example.auth.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    @Override
+    public AuthResponse register(AuthRequest request) {
+        if (userRepository.existsByUsername(request.username())) {
+            throw new RuntimeException("El usuario ya existe");
+        }
+
+        UserEntity user = UserEntity.builder()
+                .username(request.username())
+                .password(passwordEncoder.encode(request.password()))
+                .role("ROLE_USER")
+                .build();
+
+        userRepository.save(user);
+        
+        String token = jwtService.generateToken(user.getUsername(), user.getRole());
+        return new AuthResponse(token, "Bearer");
+    }
+
+    @Override
+    public AuthResponse login(AuthRequest request) {
+        UserEntity user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new RuntimeException("Credenciales inválidas"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new RuntimeException("Credenciales inválidas");
+        }
+
+        String token = jwtService.generateToken(user.getUsername(), user.getRole());
+        return new AuthResponse(token, "Bearer");
+    }
+}

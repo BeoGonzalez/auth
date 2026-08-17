@@ -1,0 +1,22 @@
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: idp-auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      # Inyectamos el secreto criptográfico en tiempo de ejecución
+      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    networks:
+      - ecom-network
+    restart: unless-stopped
+    # Nota de Senior: Cuando migres a tu e-commerce real, aquí añadiríamos 
+    # la dependencia (depends_on) hacia un contenedor de PostgreSQL.
+
+# Definimos una red personalizada para que en la Fase 2, el Resource Server 
+# y el Auth-Service puedan comunicarse internamente sin salir a internet.
+networks:
+  ecom-network:
+    driver: bridge
